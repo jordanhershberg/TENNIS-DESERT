@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kaboom Tennis Ball</title>
+  <!-- Include Kaboom.js from CDN -->
+  <script src="https://unpkg.com/kaboom/dist/kaboom.js"></script>
+</head>
+<body>
+  <script>
+    kaboom({
+      width: 1200,
+      height: 600,
+      background: [0, 100, 200],
+    });
+
+    loadSprite("tennisball", "https://upload.wikimedia.org/wikipedia/commons/1/1f/Tennis_Ball_on_white.jpg");
+
+    scene("main", () => {
+      add([
+        sprite("tennisball"),
+        pos(200, 200),
+        scale(0.2),
+      ]);
+    });
+
+    go("main");
+  </script>
+</body>
+</html>

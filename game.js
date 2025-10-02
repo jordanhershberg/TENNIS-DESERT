@@ -8,11 +8,13 @@ kaboom({
 setGravity(800);
 
 // Load a player sprite
-loadSprite("apple", "https://kaboomjs.com/sprites/apple.png");
+loadSprite("tennisball", "https://www.google.com/url?sa=i&url=https%3A%2F%2Fpngtree.com%2Fso%2Fsport-tennis-ball&psig=AOvVaw33YvkCViTEeL55v9zJ9GSf&ust=1759512792359000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCOjtyYmGhpADFQAAAAAdAAAAABAV");
+
+scene("main", ({ level } = { level: 0 }) => {
 
 // --- The Player Character ---
 const player = add([
- sprite("apple"),
+ sprite("tennisball"),
  pos(100, 100),
  area({ scale: 0.7 }),
  body(),
@@ -27,14 +29,11 @@ add([
 ]);
 
 // --- Movement Controls ---
-onKeyDown("left", () => {
- player.move(-200, 0);
-});
-onKeyDown("right", () => {
- player.move(200, 0);
-});
+
 onKeyPress("space", () => {
  if (player.isGrounded()) {
- player.jump(650);
+ player.move(650, 0);
  }
 });
+});
+go("main")
