@@ -8,9 +8,10 @@ kaboom({
 setGravity(800);
 
 // Load a player sprite
-loadSprite("tennisball", "https://www.google.com/url?sa=i&url=https%3A%2F%2Fpngtree.com%2Fso%2Fsport-tennis-ball&psig=AOvVaw33YvkCViTEeL55v9zJ9GSf&ust=1759512792359000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCOjtyYmGhpADFQAAAAAdAAAAABAV");
+loadSprite("tennisball", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTmlxXnqjtcD1Rn34YP8UatWAqMZA56b3vS5g&s");
 
 scene("main", ({ level } = { level: 0 }) => {
+
 
 // --- The Player Character ---
 const player = add([
@@ -18,6 +19,7 @@ const player = add([
  pos(100, 100),
  area({ scale: 0.7 }),
  body(),
+ "tennisball"
 ]);
 
 // --- The World ---
