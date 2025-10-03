@@ -8,7 +8,7 @@ kaboom({
 setGravity(800);
 
 // Load a player sprite
-loadSprite("tennisball", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTmlxXnqjtcD1Rn34YP8UatWAqMZA56b3vS5g&s");
+loadSprite("tennisball", "https://static.vecteezy.com/system/resources/previews/013/362/731/non_2x/tennis-ball-transparent-free-png.png");
 
 scene("main", ({ level } = { level: 0 }) => {
 
@@ -16,8 +16,8 @@ scene("main", ({ level } = { level: 0 }) => {
 // --- The Player Character ---
 const player = add([
  sprite("tennisball"),
- pos(100, 100),
- area({ scale: 0.7 }),
+ pos(100, 200),
+ area({ scale: 0.5 }),
  body(),
  "tennisball"
 ]);
@@ -34,8 +34,9 @@ add([
 
 onKeyPress("space", () => {
  if (player.isGrounded()) {
- player.move(650, 0);
- }
+ };
+ (play)
 });
 });
+
 go("main")
