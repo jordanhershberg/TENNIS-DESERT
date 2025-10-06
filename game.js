@@ -12,31 +12,62 @@ loadSprite("tennisball", "https://static.vecteezy.com/system/resources/previews/
 
 scene("main", ({ level } = { level: 0 }) => {
 
+    const LEVELS = [
+        [
+            "                       ",
+            "                       ",
+            "                       ",
+            "                       ",
+            "                       ",
+            "                       ",
+            "=======================",
+        ]
+        ];
+
+    const currentLevel = level;
 
 // --- The Player Character ---
-const player = add([
- sprite("tennisball"),
- pos(100, 200),
- area({ scale: 0.5 }),
- body(),
- "tennisball"
-]);
+    const player = add([
+    sprite("tennisball"),
+    pos(100, 200),
+    area({ scale: 0.0005 }),
+    body(),
+    "tennisball"
+    ]);
 
-// --- The World ---
-add([
- rect(width(), 48),
- pos(0, height() - 48),
- area(),
- body({ isStatic: true }),
-]);
+        const levelConf = {
+        tileWidth: 47,
+        tileHeight: 47,
+        tiles: {
+            " ": () => [],
+            "=": () => [
+                rect(47, 47),
+                color(0, 200, 0),
+                area(),
+                body({ isStatic: true }),
+                "platform",
+            ],
+        }
+    };
 
-// --- Movement Controls ---
+    addLevel(LEVELS[currentLevel], levelConf);
+    
+    // --- The World ---
+    add([
+    rect(width(), 48),
+    pos(0, height() - 48),
+    area(),
+    body({ isStatic: true }),
+    ]);
 
-onKeyPress("space", () => {
- if (player.isGrounded()) {
- };
- (play)
-});
-});
+    // --- Movement Controls ---
 
-go("main")
+    onKeyPress("space", () => {
+    if (player.isGrounded()) {
+
+
+    };
+    });
+    });
+
+go("main");

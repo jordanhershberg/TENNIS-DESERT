@@ -1,29 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
   <title>Kaboom Tennis Ball</title>
-  <script src="https://unpkg.com/kaboom/dist/kaboom.js"></script>
 </head>
-<body>
-  <script>
-    kaboom({
-      width: 1200,
-      height: 600,
-      background: [0, 100, 200],
-    });
-
-    loadSprite("tennisball", "https://static.vecteezy.com/system/resources/previews/013/362/731/non_2x/tennis-ball-transparent-free-png.png");
-
-    scene("main", () => {
-      add([
-        sprite("tennisball"),
-        pos(200, 200),
-        scale(0.05),
-      ]);
-    });
-
-    go("main");
-  </script>
-</body>
+  <body>
+    <script src="https://unpkg.com/kaboom@3000/dist/kaboom.js"></script>
+    <script src="game.js"></script>
+  </body>
 </html>
