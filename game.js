@@ -8,23 +8,20 @@ kaboom({
 setGravity(800);
 
 // Load a player sprite
-loadSprite("tennisball", "https://static.vecteezy.com/system/resources/previews/013/362/731/non_2x/tennis-ball-transparent-free-png.png");
+loadSprite("tennisball", "");
 
 scene("main", ({ level } = { level: 0 }) => {
 
-    const LEVELS = [
-        [
-            "                       ",
-            "                       ",
-            "                       ",
-            "                       ",
-            "                       ",
-            "                       ",
-            "=======================",
-        ]
-        ];
-
-    const currentLevel = level;
+add([
+    // A circle is a great way to make a smooth, round hill!
+    circle(100),
+    // Position it so it's partially buried, creating a dune shape
+    pos(500, height() - 100),
+    // Give it a sandy color
+    color(255, 200, 100),
+    area(),
+    body({ isStatic: true }), // Make sure it's solid!
+]);
 
 // --- The Player Character ---
     const player = add([
@@ -35,22 +32,6 @@ scene("main", ({ level } = { level: 0 }) => {
     "tennisball"
     ]);
 
-        const levelConf = {
-        tileWidth: 47,
-        tileHeight: 47,
-        tiles: {
-            " ": () => [],
-            "=": () => [
-                rect(47, 47),
-                color(0, 200, 0),
-                area(),
-                body({ isStatic: true }),
-                "platform",
-            ],
-        }
-    };
-
-    addLevel(LEVELS[currentLevel], levelConf);
     
     // --- The World ---
     add([
