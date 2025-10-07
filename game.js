@@ -8,7 +8,7 @@ kaboom({
 setGravity(800);
 
 // Load a player sprite
-loadSprite("tennisball", "");
+loadSprite("tennisball", "tennis-ball-transparent-free-png.png");
 
 scene("main", ({ level } = { level: 0 }) => {
 
@@ -16,7 +16,17 @@ add([
     // A circle is a great way to make a smooth, round hill!
     circle(100),
     // Position it so it's partially buried, creating a dune shape
-    pos(500, height() - 100),
+    pos(100, height() - 150),
+    // Give it a sandy color
+    color(255, 200, 100),
+    area(),
+    body({ isStatic: true }), // Make sure it's solid!
+]);
+add([
+    // A circle is a great way to make a smooth, round hill!
+    circle(100),
+    // Position it so it's partially buried, creating a dune shape
+    pos(300, height() - 150),
     // Give it a sandy color
     color(255, 200, 100),
     area(),
@@ -27,25 +37,16 @@ add([
     const player = add([
     sprite("tennisball"),
     pos(100, 200),
-    area({ scale: 0.0005 }),
+    area({ scale: 1}),
     body(),
     "tennisball"
-    ]);
-
-    
-    // --- The World ---
-    add([
-    rect(width(), 48),
-    pos(0, height() - 48),
-    area(),
-    body({ isStatic: true }),
     ]);
 
     // --- Movement Controls ---
 
     onKeyPress("space", () => {
     if (player.isGrounded()) {
-
+        
 
     };
     });
