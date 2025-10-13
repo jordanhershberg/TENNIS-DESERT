@@ -5,40 +5,51 @@ kaboom({
  background: [0, 100, 200],
 });
 
-setGravity(800);
+//setGravity(800);
 
 // Load a player sprite
 loadSprite("tennisball", "tennis-ball-transparent-free-png.png");
 
 scene("main", ({ level } = { level: 0 }) => {
 
+// Dune 1: Approximated circular hitbox
+const DUNE_SIDES = 20;
+const DUNE_RADIUS = 100;
+const dunePoints1 = [];
+for (let i = 0; i < DUNE_SIDES; i++) {
+    const angle = (2 * Math.PI * i) / DUNE_SIDES;
+    dunePoints1.push(vec2(Math.cos(angle) * DUNE_RADIUS, Math.sin(angle) * DUNE_RADIUS));
+}
+
 add([
-    // A circle is a great way to make a smooth, round hill!
-    circle(100),
-    // Position it so it's partially buried, creating a dune shape
+    circle(DUNE_RADIUS),
     pos(100, height() - 150),
-    // Give it a sandy color
     color(255, 200, 100),
-    area(),
-    body({ isStatic: true }), // Make sure it's solid!
+    area({ shape: new Polygon(dunePoints1) }),
+    body({ isStatic: true }),
 ]);
+
+// Dune 2: Approximated circular hitbox
+const dunePoints2 = [];
+for (let i = 0; i < DUNE_SIDES; i++) {
+    const angle = (2 * Math.PI * i) / DUNE_SIDES;
+    dunePoints2.push(vec2(Math.cos(angle) * DUNE_RADIUS, Math.sin(angle) * DUNE_RADIUS));
+}
+
 add([
     wave(-3,3,5,Math.sin),
-    // A circle is a great way to make a smooth, round hill!
-    circle(100),
-    // Position it so it's partially buried, creating a dune shape
+    circle(DUNE_RADIUS),
     pos(300, height() - 150),
-    // Give it a sandy color
     color(255, 200, 100),
-    area(),
-    body({ isStatic: true }), // Make sure it's solid!
+    area({ shape: new Polygon(dunePoints2) }),
+    body({ isStatic: true }),
 ]);
 
 // --- The Player Character ---
     const player = add([
     sprite("tennisball"),
     pos(100, 200),
-    area({ scale: 1}),
+    area({ scale: 0.8}),
     body(),
     "tennisball"
     ]);
