@@ -1,10 +1,294 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Kaboom Tennis Ball</title>
+<meta charset="UTF-8" />
+<title>Dune! Clone — Natural Lift-Off & Zero Restitution</title>
+<style>
+  body { margin:0; overflow:hidden; background:#0070c8; }
+  canvas { display:block; background:#0070c8; }
+  #score {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-family: sans-serif;
+    font-size: 24px;
+    color: white;
+    user-select: none;
+  }
+</style>
 </head>
-  <body>
-    <script src="https://unpkg.com/kaboom@3000/dist/kaboom.js"></script>
-    <script src="game.js"></script>
-  </body>
+<body>
+<div id="score">Score: 0</div>
+<canvas id="game"></canvas>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  let W = window.innerWidth;
+  let H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
+
+  const scale = 0.5; // zoom out
+
+  // Terrain parameters
+  const segmentWidth = 5;
+  const waveAmplitude = 120;
+  const waveFrequency = 0.004;
+
+  // Physics and controls
+  const gravity = 0.5;
+  const acceleration = 0.15;
+  // Unlimited acceleration — no max speed limit
+
+  const ballRadius = 36;
+  let scrollOffset = 0;
+
+  // Game state
+  const terrain = [];
+  const coins = [];
+  const obstacles = [];
+
+  const keys = { space: false };
+
+  let score = 0;
+  let timeAlive = 0;
+  let gameOver = false;
+
+  // Ball sprite
+  const ballImage = new Image();
+  ballImage.src = "tennis-ball-transparent-free-png.png";
+
+  const ball = {
+    x: 200,
+    y: H / scale - 600, // start high so ball drops safely
+    vx: 0,
+    vy: 0,
+    grounded: false,
+  };
+
+  function dist(x1, y1, x2, y2) {
+    return Math.hypot(x2 - x1, y2 - y1);
+  }
+
+  function generateTerrain(startX, count) {
+    for(let i = 0; i < count; i++) {
+      const x = startX + i * segmentWidth;
+      let y;
+      if(x < 600) {
+        y = H / scale - 200; // flat start
+      } else {
+        y = H / scale - 200 + Math.sin(x * waveFrequency) * waveAmplitude;
+      }
+      terrain.push({ x, y });
+
+      // Scatter coins sparsely above terrain
+      if(Math.random() < 0.015) {
+        coins.push({
+          x,
+          y: y - 200 - Math.random() * 200,
+          collected: false,
+        });
+      }
+
+      // Scatter fewer obstacles higher above terrain
+      if(Math.random() < 0.005) {
+        obstacles.push({
+          x,
+          y: y - 250 - Math.random() * 300,
+          size: 30,
+        });
+      }
+    }
+  }
+
+  function getTerrainY(x) {
+    for(let i = 0; i < terrain.length - 1; i++) {
+      const p1 = terrain[i];
+      const p2 = terrain[i + 1];
+      if(x >= p1.x && x <= p2.x) {
+        const ratio = (x - p1.x) / (p2.x - p1.x);
+        return p1.y * (1 - ratio) + p2.y * ratio;
+      }
+    }
+    return H / scale;
+  }
+
+  function endGame(reason) {
+    if(gameOver) return;
+    gameOver = true;
+    setTimeout(() => {
+      if(confirm(`${reason}\nYour Score: ${score}\nPlay again?`)) {
+        location.reload();
+      }
+    }, 200);
+  }
+
+  let lastTime = performance.now();
+
+  function update(dt) {
+    if(gameOver) return;
+
+    timeAlive += dt;
+    score = Math.floor(timeAlive) + coins.filter(c => c.collected).length * 5;
+    document.getElementById("score").innerText = "Score: " + score;
+
+    ball.vy += gravity;
+
+    // Accelerate only if grounded and space pressed, no max speed limit
+    if(ball.grounded && keys.space) {
+      ball.vx += acceleration;
+    } else {
+      ball.vx *= 0.98;
+      if(Math.abs(ball.vx) < 0.01) ball.vx = 0;
+    }
+
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // Collision & grounded logic with natural lift-off and zero restitution
+    const terrainY = getTerrainY(ball.x);
+    const yDiff = (ball.y + ballRadius) - terrainY;
+    const groundTolerance = 4;
+
+    if(yDiff > 0) {
+      // Penetrated terrain, snap up & zero vertical velocity (no bounce)
+      ball.y = terrainY - ballRadius;
+      if(ball.vy > 0) ball.vy = 0;
+      ball.grounded = true;
+    } else if(yDiff >= -groundTolerance && ball.vy >= -0.5) {
+      // Close enough above terrain, moving downward or nearly stationary vertically
+      ball.grounded = true;
+      if(yDiff < 0) ball.y = terrainY - ballRadius;
+      if(ball.vy > 0) ball.vy = 0;
+    } else {
+      ball.grounded = false;
+    }
+
+    // Crash detection on positive slope and steep impact
+    if(ball.grounded) {
+      const delta = 0.1;
+      const yAhead = getTerrainY(ball.x + delta);
+      const slope = (yAhead - terrainY) / delta;
+
+      const terrainAngle = Math.atan(slope);
+      const ballAngle = Math.atan2(ball.vy, ball.vx);
+      const impactAngle = Math.abs(terrainAngle - ballAngle);
+
+      const IMPACT_ANGLE_THRESHOLD = 1.22; // ~70 degrees
+      const MIN_HORIZ_SPEED = 2;
+
+      if(slope > 0 && impactAngle > IMPACT_ANGLE_THRESHOLD && Math.abs(ball.vx) > MIN_HORIZ_SPEED) {
+        endGame("Crashed into uphill slope!");
+      }
+    }
+
+    // Coins collection
+    for(const coin of coins) {
+      if(!coin.collected && dist(ball.x, ball.y, coin.x, coin.y) < ballRadius + 10) {
+        coin.collected = true;
+      }
+    }
+
+    // Obstacles collision
+    for(const obs of obstacles) {
+      if(dist(ball.x, ball.y, obs.x, obs.y) < ballRadius + obs.size) {
+        endGame("Hit an obstacle!");
+      }
+    }
+
+    if(ball.y > H / scale + 300) {
+      endGame("You fell off!");
+    }
+
+    // Generate more terrain if near the end
+    const lastX = terrain[terrain.length - 1].x;
+    if(ball.x + W / scale > lastX) {
+      generateTerrain(lastX, 500);
+    }
+
+    scrollOffset = ball.x - 200;
+  }
+
+  function drawTerrain() {
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    ctx.moveTo(terrain[0].x - scrollOffset, terrain[0].y);
+    for(let i = 1; i < terrain.length; i++) {
+      ctx.lineTo(terrain[i].x - scrollOffset, terrain[i].y);
+    }
+    ctx.lineTo(terrain[terrain.length - 1].x - scrollOffset, H / scale);
+    ctx.lineTo(terrain[0].x - scrollOffset, H / scale);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawBall() {
+    ctx.drawImage(ballImage, ball.x - ballRadius - scrollOffset, ball.y - ballRadius, ballRadius * 2, ballRadius * 2);
+  }
+
+  function drawCoins() {
+    ctx.fillStyle = "gold";
+    for(const coin of coins) {
+      if(!coin.collected) {
+        ctx.beginPath();
+        ctx.arc(coin.x - scrollOffset, coin.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "yellow";
+        ctx.stroke();
+      }
+    }
+  }
+
+  function drawObstacles() {
+    ctx.fillStyle = "red";
+    for(const obs of obstacles) {
+      ctx.beginPath();
+      ctx.arc(obs.x - scrollOffset, obs.y, obs.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function loop(timestamp) {
+    const dt = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.scale(scale, scale);
+
+    update(dt);
+
+    drawTerrain();
+    drawCoins();
+    drawObstacles();
+    drawBall();
+
+    if(!gameOver) {
+      requestAnimationFrame(loop);
+    }
+  }
+
+  window.addEventListener("keydown", e => {
+    if(e.code === "Space") keys.space = true;
+  });
+  window.addEventListener("keyup", e => {
+    if(e.code === "Space") keys.space = false;
+  });
+
+  window.addEventListener("resize", () => {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W;
+    canvas.height = H;
+  });
+
+  generateTerrain(0, 1000);
+  ballImage.onload = () => {
+    requestAnimationFrame(loop);
+  };
+})();
+</script>
+</body>
 </html>
