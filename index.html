@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Dune! Clone — Natural Lift-Off & Zero Restitution</title>
-<style>
-  body { margin:0; overflow:hidden; background:#0070c8; }
-  canvas { display:block; background:#0070c8; }
-  #score {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    font-family: sans-serif;
-    font-size: 24px;
-    color: white;
-    user-select: none;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <title>Dune! Clone – Natural Lift-Off at Inflection Points</title>
+  <style>
+    body { margin:0; overflow:hidden; background:#0070c8; }
+    canvas { display:block; background:#0070c8; }
+    #score {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-family: sans-serif;
+      font-size: 24px;
+      color: white;
+      user-select: none;
+    }
+  </style>
 </head>
 <body>
 <div id="score">Score: 0</div>
@@ -30,22 +30,18 @@
   canvas.width = W;
   canvas.height = H;
 
-  const scale = 0.5; // zoom out
+  const scale = 0.5;
 
-  // Terrain parameters
   const segmentWidth = 5;
   const waveAmplitude = 120;
   const waveFrequency = 0.004;
 
-  // Physics and controls
   const gravity = 0.5;
   const acceleration = 0.15;
-  // Unlimited acceleration — no max speed limit
 
   const ballRadius = 36;
   let scrollOffset = 0;
 
-  // Game state
   const terrain = [];
   const coins = [];
   const obstacles = [];
@@ -56,13 +52,12 @@
   let timeAlive = 0;
   let gameOver = false;
 
-  // Ball sprite
   const ballImage = new Image();
   ballImage.src = "tennis-ball-transparent-free-png.png";
 
   const ball = {
     x: 200,
-    y: H / scale - 600, // start high so ball drops safely
+    y: H / scale - 600,
     vx: 0,
     vy: 0,
     grounded: false,
@@ -73,30 +68,28 @@
   }
 
   function generateTerrain(startX, count) {
-    for(let i = 0; i < count; i++) {
+    for (let i = 0; i < count; i++) {
       const x = startX + i * segmentWidth;
       let y;
-      if(x < 600) {
-        y = H / scale - 200; // flat start
+      if (x < 600) {
+        y = H / scale - 200;
       } else {
         y = H / scale - 200 + Math.sin(x * waveFrequency) * waveAmplitude;
       }
       terrain.push({ x, y });
 
-      // Scatter coins sparsely above terrain
-      if(Math.random() < 0.015) {
+      if (Math.random() < 0.015) {
         coins.push({
           x,
-          y: y - 200 - Math.random() * 200,
+          y: y - 200 - Math.random() * 600,
           collected: false,
         });
       }
 
-      // Scatter fewer obstacles higher above terrain
-      if(Math.random() < 0.005) {
+      if (Math.random() < 0.005) {
         obstacles.push({
           x,
-          y: y - 250 - Math.random() * 300,
+          y: y - 300 - Math.random() * 700,
           size: 30,
         });
       }
@@ -104,10 +97,10 @@
   }
 
   function getTerrainY(x) {
-    for(let i = 0; i < terrain.length - 1; i++) {
+    for (let i = 0; i < terrain.length - 1; i++) {
       const p1 = terrain[i];
       const p2 = terrain[i + 1];
-      if(x >= p1.x && x <= p2.x) {
+      if (x >= p1.x && x <= p2.x) {
         const ratio = (x - p1.x) / (p2.x - p1.x);
         return p1.y * (1 - ratio) + p2.y * ratio;
       }
@@ -115,11 +108,24 @@
     return H / scale;
   }
 
+  // Approximate first and second derivatives of terrain at x
+  function terrainDerivatives(x) {
+    const h = 1;
+    const y0 = getTerrainY(x);
+    const y1 = getTerrainY(x + h);
+    const y_1 = getTerrainY(x - h);
+
+    const firstDeriv = (y1 - y_1) / (2 * h);
+    const secondDeriv = (y1 - 2 * y0 + y_1) / (h * h);
+
+    return { firstDeriv, secondDeriv };
+  }
+
   function endGame(reason) {
-    if(gameOver) return;
+    if (gameOver) return;
     gameOver = true;
     setTimeout(() => {
-      if(confirm(`${reason}\nYour Score: ${score}\nPlay again?`)) {
+      if (confirm(`${reason}\nYour Score: ${score}\nPlay again?`)) {
         location.reload();
       }
     }, 200);
@@ -128,83 +134,99 @@
   let lastTime = performance.now();
 
   function update(dt) {
-    if(gameOver) return;
+    if (gameOver) return;
 
     timeAlive += dt;
     score = Math.floor(timeAlive) + coins.filter(c => c.collected).length * 5;
     document.getElementById("score").innerText = "Score: " + score;
 
+    // Gravity always applies
     ball.vy += gravity;
 
-    // Accelerate only if grounded and space pressed, no max speed limit
-    if(ball.grounded && keys.space) {
+    // Horizontal acceleration when grounded and holding space
+    if (ball.grounded && keys.space) {
       ball.vx += acceleration;
-    } else {
+    } else if (ball.grounded) {
       ball.vx *= 0.98;
-      if(Math.abs(ball.vx) < 0.01) ball.vx = 0;
+      if (Math.abs(ball.vx) < 0.01) ball.vx = 0;
+    } else {
+      // Airborne: less horizontal friction to preserve momentum
+      ball.vx *= 0.995;
     }
 
     ball.x += ball.vx;
     ball.y += ball.vy;
 
-    // Collision & grounded logic with natural lift-off and zero restitution
+    // Terrain collision & grounding logic with curvature check
     const terrainY = getTerrainY(ball.x);
-    const yDiff = (ball.y + ballRadius) - terrainY;
-    const groundTolerance = 4;
+    const ballBottom = ball.y + ballRadius;
 
-    if(yDiff > 0) {
-      // Penetrated terrain, snap up & zero vertical velocity (no bounce)
-      ball.y = terrainY - ballRadius;
-      if(ball.vy > 0) ball.vy = 0;
-      ball.grounded = true;
-    } else if(yDiff >= -groundTolerance && ball.vy >= -0.5) {
-      // Close enough above terrain, moving downward or nearly stationary vertically
-      ball.grounded = true;
-      if(yDiff < 0) ball.y = terrainY - ballRadius;
-      if(ball.vy > 0) ball.vy = 0;
+    const { firstDeriv: slope, secondDeriv: curvature } = terrainDerivatives(ball.x);
+    const epsilon = 3;
+
+    if (ballBottom >= terrainY - epsilon) {
+      if (ball.vy > 0) {
+        // Falling down: stick firmly
+        ball.y = terrainY - ballRadius;
+        ball.vy = 0;
+        ball.grounded = true;
+      } else {
+        // Moving up or stable — check curvature
+        if (curvature <= 0) {
+          // Ground curves downward or flat - stick to ground
+          ball.y = terrainY - ballRadius;
+          ball.grounded = true;
+          ball.vy *= 0.5; // gentle ground push
+        } else {
+          // Ground curves upward - ball lifts off naturally
+          ball.grounded = false;
+        }
+      }
     } else {
+      // In air
       ball.grounded = false;
     }
 
-    // Crash detection on positive slope and steep impact
-    if(ball.grounded) {
-      const delta = 0.1;
-      const yAhead = getTerrainY(ball.x + delta);
-      const slope = (yAhead - terrainY) / delta;
+    // Crash detection on steep uphill when grounded
+    if (ball.grounded) {
+      const deltaSlopeCheck = 0.1;
+      const yAhead = getTerrainY(ball.x + deltaSlopeCheck);
+      const slopeCheck = (yAhead - terrainY) / deltaSlopeCheck;
 
-      const terrainAngle = Math.atan(slope);
+      const terrainAngle = Math.atan(slopeCheck);
       const ballAngle = Math.atan2(ball.vy, ball.vx);
       const impactAngle = Math.abs(terrainAngle - ballAngle);
 
-      const IMPACT_ANGLE_THRESHOLD = 1.22; // ~70 degrees
+      const IMPACT_ANGLE_THRESHOLD = 1.22;
       const MIN_HORIZ_SPEED = 2;
 
-      if(slope > 0 && impactAngle > IMPACT_ANGLE_THRESHOLD && Math.abs(ball.vx) > MIN_HORIZ_SPEED) {
+      if (slopeCheck > 0 && impactAngle > IMPACT_ANGLE_THRESHOLD && Math.abs(ball.vx) > MIN_HORIZ_SPEED) {
         endGame("Crashed into uphill slope!");
       }
     }
 
-    // Coins collection
-    for(const coin of coins) {
-      if(!coin.collected && dist(ball.x, ball.y, coin.x, coin.y) < ballRadius + 10) {
+    // Coin collection
+    for (const coin of coins) {
+      if (!coin.collected && dist(ball.x, ball.y, coin.x, coin.y) < ballRadius + 10) {
         coin.collected = true;
       }
     }
 
-    // Obstacles collision
-    for(const obs of obstacles) {
-      if(dist(ball.x, ball.y, obs.x, obs.y) < ballRadius + obs.size) {
+    // Obstacle collisions
+    for (const obs of obstacles) {
+      if (dist(ball.x, ball.y, obs.x, obs.y) < ballRadius + obs.size) {
         endGame("Hit an obstacle!");
       }
     }
 
-    if(ball.y > H / scale + 300) {
+    // Fell off check
+    if (ball.y > H / scale + 300) {
       endGame("You fell off!");
     }
 
-    // Generate more terrain if near the end
+    // Generate more terrain as needed
     const lastX = terrain[terrain.length - 1].x;
-    if(ball.x + W / scale > lastX) {
+    if (ball.x + W / scale > lastX) {
       generateTerrain(lastX, 500);
     }
 
@@ -215,7 +237,7 @@
     ctx.fillStyle = "white";
     ctx.beginPath();
     ctx.moveTo(terrain[0].x - scrollOffset, terrain[0].y);
-    for(let i = 1; i < terrain.length; i++) {
+    for (let i = 1; i < terrain.length; i++) {
       ctx.lineTo(terrain[i].x - scrollOffset, terrain[i].y);
     }
     ctx.lineTo(terrain[terrain.length - 1].x - scrollOffset, H / scale);
@@ -230,8 +252,8 @@
 
   function drawCoins() {
     ctx.fillStyle = "gold";
-    for(const coin of coins) {
-      if(!coin.collected) {
+    for (const coin of coins) {
+      if (!coin.collected) {
         ctx.beginPath();
         ctx.arc(coin.x - scrollOffset, coin.y, 10, 0, Math.PI * 2);
         ctx.fill();
@@ -243,7 +265,7 @@
 
   function drawObstacles() {
     ctx.fillStyle = "red";
-    for(const obs of obstacles) {
+    for (const obs of obstacles) {
       ctx.beginPath();
       ctx.arc(obs.x - scrollOffset, obs.y, obs.size, 0, Math.PI * 2);
       ctx.fill();
@@ -265,16 +287,16 @@
     drawObstacles();
     drawBall();
 
-    if(!gameOver) {
+    if (!gameOver) {
       requestAnimationFrame(loop);
     }
   }
 
   window.addEventListener("keydown", e => {
-    if(e.code === "Space") keys.space = true;
+    if (e.code === "Space") keys.space = true;
   });
   window.addEventListener("keyup", e => {
-    if(e.code === "Space") keys.space = false;
+    if (e.code === "Space") keys.space = false;
   });
 
   window.addEventListener("resize", () => {
